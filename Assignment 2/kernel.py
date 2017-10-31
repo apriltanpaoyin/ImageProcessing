@@ -29,13 +29,10 @@ import cv2
 
 video = cv2.VideoCapture("Zorro.mp4")
 # Params needed for video writer
-fourcc = video.get(cv2.CAP_PROP_FOURCC)
-fps = video.get(cv2.CAP_PROP_FPS)
-frameSize = (video.get(cv2.CAP_PROP_FRAME_WIDTH), video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-print fourcc
-print fps
-print frameSize
+# fourcc = int(video.get(cv2.CAP_PROP_FOURCC))
+fourcc = cv2.VideoWriter_fourcc(*"MPEG")
+fps = int(video.get(cv2.CAP_PROP_FPS))
+frameSize = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
 # Define video writer to writea new video
 writer = cv2.VideoWriter("output.mp4", fourcc, fps, frameSize)
