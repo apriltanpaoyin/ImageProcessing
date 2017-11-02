@@ -18,12 +18,12 @@
 #	1. Stackoverflow.com. (2014). Python "SyntaxError: Non-ASCII character '\xe2' in file". [online] Available at: https://stackoverflow.com/questions/21639275/python-syntaxerror-non-ascii-character-xe2-in-file [Accessed 4 Oct. 2017].																			
 #
 #	Performance:																																																								
-#	1. Suuuuuuper slow cause of denoising																									
+#	1. Suuuuuuper slow cause of denoising																							
 #
 #	Experiments:																							
 #	1. To include links in this file, the first line had to be implemented. This solution was found online. Please see Reference #1.
 #	2. Tried to use the input file type as the output file type, but it could not find the library (for mp4 in the case of Zorro). 
-#		Decided to scrap to prevent	compatibility issues. 																							
+#		Decided to scrap to prevent	compatibility issues.
 ################################################################################################################################################################################################################################################
 # Import the necessary packages:
 import numpy as np
@@ -38,46 +38,51 @@ frameSize = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PRO
 
 # Define video writer to writea new video
 # writer = cv2.VideoWriter("output.avi", fourcc, fps, frameSize)
-writer = cv2.VideoWriter("output.avi", -1, fps, frameSize)
+# writer = cv2.VideoWriter("output.avi", -1, fps, frameSize)
 cnt = 0
+# First frame
+previous = None
+
+def differences(previous, img, cnt):
+	# if previous is None:
+	# 	previous = img
+
+	#Get difference btwn first frame & current frame
+	diff = cv2.absdiff(previous, img)
+
+	# Delta more than 110
+	thresh, binImg = cv2.threshold(diff, 110, 255, cv2.THRESH_BINARY)
+	negBin = 255 - binImg
+    
+	ROI = cv2.bitwise_and(previous, previous, mask = negBin)
+	otherROI = cv2.bitwise_and(img, img, mask = binImg)
+    
+	img = ROI + otherROI
+
+	cv2.imwrite("mod_{}.jpg".format(cnt), img)
 
 def processFrame(cnt, img):
 	# if cnt == 150:
 	# 	cv2.imwrite("ori_150.jpg", img)
-	# if cnt == 600:
-	# 	cv2.imwrite("ori_600.jpg", img)
 
 	# Add edges to the image to make the edges sharper?
 
-	# if cnt == 650:
-	denoise = cv2.fastNlMeansDenoising(img,None,7,7,21)
+	if cnt > 48 and cnt < 69 :
+		img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-	denoise = cv2.cvtColor(denoise, cv2.COLOR_BGR2GRAY)
+		# Sharpen
+		kernel = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]], dtype=float)
+		kernImg = cv2.filter2D(img,ddepth=-1,kernel=kernel)
 
-	clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(2,2))
-	cla = clahe.apply(denoise)
+		denoise = cv2.fastNlMeansDenoising(kernImg,None,7,7,21)
 
-	# Sharpen
-	kernel = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]], dtype=float)
-	kernImg = cv2.filter2D(denoise,ddepth=-1,kernel=kernel)
+		clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(2,2))
+		claImg = clahe.apply(denoise)
 
-	# Gaussian from notes
-	kernel = np.array([[1,4,1], [4,7,4], [1,4,1]], dtype=float)/27
-	smooth = cv2.filter2D(kernImg,ddepth=-1,kernel=kernel)
-
-		# cv2.imshow("cla", cla)
-		# cv2.imshow("smooth", smooth)
-		# key = cv2.waitKey(0)
-
-		# cv2.imwrite("mod_{}.jpg".format(cnt), smooth)
-	# if cnt == 600:
-	# 	denoise = cv2.fastNlMeansDenoising(img,None,7,7,21)
-
-	# 	kernel = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]], dtype=float)
-	# 	kernImg = cv2.filter2D(denoise,ddepth=-1,kernel=kernel)
-
-	# 	cv2.imwrite("mod_600.jpg", kernImg)
-	return smooth
+		# smooth = cv2.GaussianBlur(claImg,(5,5),0)
+		return cnt, claImg
+	else:
+		return cnt, img
 
 while True:
 	(grabbed, img) = video.read()
@@ -86,12 +91,17 @@ while True:
 	#if can't grab frame
 	if not grabbed:
 		break
-	else:
-		smooth = processFrame(cnt, img)
-		print cnt
-		writer.write(smooth)
 
+	cnt, processed = processFrame(cnt, img)
+
+	if cnt == 49:
+		previous = processed
+
+	if cnt > 49 and cnt < 69:
+		differences(previous, processed, cnt)
 	
+	# writer.write(smooth)
+
 video.release()
 # writer.release()
 cv2.destroyAllWindows()
