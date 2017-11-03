@@ -42,33 +42,59 @@ frameSize = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PRO
 cnt = 0
 # First frame
 previous = None
+WhiteImg = None
 
 def differences(previous, img, cnt):
 	# if previous is None:
 	# 	previous = img
 
-	#Get difference btwn first frame & current frame
+	#Get difference btwn previous frame & current frame
 	diff = cv2.absdiff(previous, img)
 
-	# Delta more than 110
-	thresh, binImg = cv2.threshold(diff, 110, 255, cv2.THRESH_BINARY)
-	negBin = 255 - binImg
+	# Delta more than 
+	thresh, binImg = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
+	# binImg = cv2.dilate(binImg, None, iterations = 2)
+	# negBin = 255 - binImg
+
+	(_, cnts, _) = cv2.findContours(binImg.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	
     
+	# ROI = cv2.bitwise_and(previous, previous, mask = negBin)
+	# otherROI = cv2.bitwise_and(img, img, mask = binImg)
+
+	# newimg = ROI + otherROI
+
+	for c in cnts:
+		# Ignore contours that are too small
+		if cv2.contourArea(c) > 100:
+			continue
+			
+		# Boundary for box
+		(x, y, w, h) = cv2.boundingRect(c)
+		cv2.rectangle(WhiteImg, (x, y), (x+w, y+h), (0, 0, 0), -1)
+
+	binMask = cv2.threshold(WhiteImg, 10, 255, cv2.THRESH_BINARY)[1]
+	negBin = 255 - binMask
+
 	ROI = cv2.bitwise_and(previous, previous, mask = negBin)
-	otherROI = cv2.bitwise_and(img, img, mask = binImg)
-    
-	img = ROI + otherROI
+	otherROI = cv2.bitwise_and(img, img, mask = binMask)
 
-	cv2.imwrite("mod_{}.jpg".format(cnt), img)
+	newimg = ROI + otherROI
 
-def processFrame(cnt, img):
+	# cv2.imshow("ROI", newimg)
+	# cv2.waitKey(0)
+	cv2.imwrite("mod_{}.jpg".format(cnt), newimg)
+	return img
+
+def processFrame(img):
 	# if cnt == 150:
 	# 	cv2.imwrite("ori_150.jpg", img)
 
 	# Add edges to the image to make the edges sharper?
 
-	if cnt > 48 and cnt < 69 :
-		img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	if cnt > 103 and cnt < 116 :
+		if len(img.shape) > 2:
+			img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 		# Sharpen
 		kernel = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]], dtype=float)
@@ -80,9 +106,9 @@ def processFrame(cnt, img):
 		claImg = clahe.apply(denoise)
 
 		# smooth = cv2.GaussianBlur(claImg,(5,5),0)
-		return cnt, claImg
+		return claImg
 	else:
-		return cnt, img
+		return img
 
 while True:
 	(grabbed, img) = video.read()
@@ -92,15 +118,19 @@ while True:
 	if not grabbed:
 		break
 
-	cnt, processed = processFrame(cnt, img)
+	processed = processFrame(img)
 
-	if cnt == 49:
+	WhiteImg = np.zeros(np.shape(img), np.uint8)
+	WhiteImg[:,:] = (255,255,255)
+	WhiteImg = cv2.cvtColor(WhiteImg, cv2.COLOR_BGR2GRAY)
+
+	if cnt == 104:
 		previous = processed
 
-	if cnt > 49 and cnt < 69:
-		differences(previous, processed, cnt)
+	if cnt > 104 and cnt < 116:
+		previous = differences(previous, processed, cnt)
 	
-	# writer.write(smooth)
+	# writer.write(again)
 
 video.release()
 # writer.release()
