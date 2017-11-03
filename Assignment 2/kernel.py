@@ -38,7 +38,7 @@ frameSize = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PRO
 
 # Define video writer to writea new video
 # writer = cv2.VideoWriter("output.avi", fourcc, fps, frameSize)
-# writer = cv2.VideoWriter("output.avi", -1, fps, frameSize)
+# writer = cv2.VideoWriter("lencnts.avi", -1, fps, frameSize)
 cnt = 0
 # First frame
 previous = None
@@ -58,15 +58,18 @@ def differences(previous, img, cnt):
 
 	(_, cnts, _) = cv2.findContours(binImg.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	
-    
 	# ROI = cv2.bitwise_and(previous, previous, mask = negBin)
 	# otherROI = cv2.bitwise_and(img, img, mask = binImg)
 
 	# newimg = ROI + otherROI
 
+	# if len(cnts) > 50:
+	# 	return img
+
 	for c in cnts:
 		# Ignore contours that are too small
-		if cv2.contourArea(c) > 100:
+		area = cv2.contourArea(c)
+		if area < 10 or area > 100:
 			continue
 			
 		# Boundary for box
@@ -83,16 +86,13 @@ def differences(previous, img, cnt):
 
 	# cv2.imshow("ROI", newimg)
 	# cv2.waitKey(0)
-	cv2.imwrite("mod_{}.jpg".format(cnt), newimg)
-	return img
+	cv2.imwrite("frame_{}.jpg".format(cnt), newimg)
+	return newimg
 
 def processFrame(img):
-	# if cnt == 150:
-	# 	cv2.imwrite("ori_150.jpg", img)
-
 	# Add edges to the image to make the edges sharper?
 
-	if cnt > 103 and cnt < 116 :
+	if cnt > 0 and cnt < 89 :
 		if len(img.shape) > 2:
 			img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -124,13 +124,13 @@ while True:
 	WhiteImg[:,:] = (255,255,255)
 	WhiteImg = cv2.cvtColor(WhiteImg, cv2.COLOR_BGR2GRAY)
 
-	if cnt == 104:
+	if cnt == 1:
 		previous = processed
 
-	if cnt > 104 and cnt < 116:
+	if cnt > 1 and cnt < 89:
 		previous = differences(previous, processed, cnt)
 	
-	# writer.write(again)
+	# writer.write(previous)
 
 video.release()
 # writer.release()
