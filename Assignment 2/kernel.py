@@ -63,7 +63,7 @@ def differences(previous, img, cnt):
 
 	# newimg = ROI + otherROI
 
-	# if len(cnts) > 50:
+	# if len(cnts) < 200 or len(cnts) > 1000:
 	# 	return img
 
 	for c in cnts:
@@ -84,15 +84,15 @@ def differences(previous, img, cnt):
 
 	newimg = ROI + otherROI
 
-	# cv2.imshow("ROI", newimg)
-	# cv2.waitKey(0)
-	cv2.imwrite("frame_{}.jpg".format(cnt), newimg)
+	cv2.imshow("ROI", binMask)
+	cv2.waitKey(0)
+	# cv2.imwrite("absdiff_{}.jpg".format(cnt), newimg)
 	return newimg
 
 def processFrame(img):
 	# Add edges to the image to make the edges sharper?
 
-	if cnt > 0 and cnt < 89 :
+	if cnt > 0 and cnt < 51 :
 		if len(img.shape) > 2:
 			img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -110,9 +110,8 @@ def processFrame(img):
 	else:
 		return img
 
-while True:
+while cnt < 51:
 	(grabbed, img) = video.read()
-	cnt += 1
 
 	#if can't grab frame
 	if not grabbed:
@@ -127,9 +126,11 @@ while True:
 	if cnt == 1:
 		previous = processed
 
-	if cnt > 1 and cnt < 89:
+	if cnt > 1 and cnt < 51:
 		previous = differences(previous, processed, cnt)
+		# cv2.imwrite("ROIsmooth_{}.jpg".format(cnt), previous)
 	
+	cnt += 1
 	# writer.write(previous)
 
 video.release()
