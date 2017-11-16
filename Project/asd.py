@@ -14,61 +14,51 @@ counts = {}
 total = 0
 #Colours to look for
 colors = ["pink", "blue", "dark blue", "green", "yellow","orange"]
+colors = {"pink": [np.array([159,51,151]), np.array([248,185,255])], 
+			"blue": [np.array([195, 148, 13]), np.array([255, 238, 77])], 
+			"dark blue": [np.array([229, 70, 20]), np.array([255, 166, 89])],
+			"green": [np.array([58, 101, 46]), np.array([122, 254, 142])],
+			"yellow": [np.array([20, 186, 182]), np.array([111, 252, 255])],
+			"orange": [np.array([8, 63, 252]), np.array([84, 88, 255])]}
 
-for color in colors:
+keys = colors.keys()
+
+for color in keys:
 	counts[color] = 0
 
-	#Define the ranges 
-	if (color == "pink"):
-		lower = np.array([128,7,252])
-		upper = np.array([223,175,254])
-	elif (color == "blue"):
-		lower = np.array([195, 148, 13])
-		upper = np.array([255, 238, 77])
-	elif (color == "dark blue"):
-		lower = np.array([229, 70, 20])
-		upper = np.array([255, 166, 89])
-	elif (color == "green"):
-		lower = np.array([12, 182, 69])
-		upper = np.array([66, 254, 189])
-	elif (color == "yellow"):
-		lower = np.array([51, 209, 239])
-		upper = np.array([120, 252, 252])	
-	elif (color == "orange"):
-		lower = np.array([8, 63, 252])
-		upper = np.array([84, 88, 255])
-
 	#Create mask then apply it to the image to extract color
+	lower = colors.get(color)[0]
+	upper = colors.get(color)[1]
 	mask = cv2.inRange(img, lower, upper)
 	maskImg = cv2.bitwise_and(img, img, mask = mask)
 
 	gray = cv2.cvtColor(maskImg, cv2.COLOR_BGR2GRAY)
 
-	edge = cv2.Canny(gray, 100, 200)
+	k = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]], dtype=float)
+	F = cv2.filter2D(gray, ddepth=-1, kernel=k)
+
+	edge = cv2.Canny(F, 100, 200)
 	edge = cv2.dilate(edge, None, iterations = 1)
 
 	(_, contours, _) = cv2.findContours(edge.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	area = []
+	# Get area
 	for c in contours:
-		area = cv2.contourArea(c)
-		#Change this to percentage/find a way tp use the largest one
-		if (area < 1000):
+		area.insert(0, cv2.contourArea(c))
+	
+	area = sorted(area, reverse=True)
+
+	for c in contours:
+		individual_area = cv2.contourArea(c)
+		largest = area[0]
+		# Ignore contours smaller than largest one
+		if (individual_area < largest):
 			continue
 
 		hull = cv2.convexHull(c)
 
 		#Draw the contours. Not needed? For visuals only
-		if (color == "pink"):
-			cv2.drawContours(img, [hull], 0, (0, 0, 0))
-		elif (color == "blue"):
-			cv2.drawContours(img, [hull], 0, (0, 0, 0))
-		elif (color == "dark blue"):
-			cv2.drawContours(img, [hull], 0, (0, 0, 0))
-		elif (color == "green"):
-			cv2.drawContours(img, [hull], 0, (0, 0, 0))
-		elif (color == "orange"):
-			cv2.drawContours(img, [hull], 0, (0, 0, 0))
-		elif (color == "yellow"):
-			cv2.drawContours(img, [hull], 0, (0, 0, 0))
+		cv2.drawContours(img, [hull], 0, (0, 0, 0))
 
 		counts[color] += 1
 		total += 1
